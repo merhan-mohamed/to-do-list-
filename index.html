@@ -1,0 +1,149 @@
+<script type="text/javascript" src="https://unpkg.com/vue"></script>
+<link href="https://unpkg.com/todomvc-app-css@2.1.0/index.css" rel="stylesheet"/>
+
+
+<section class="todoapp">
+ <header class="header">
+    <h1>todos</h1>
+    <input class="new-todo"  autocomplete="off" v-model='newtodo'
+      @keyup.enter = 'addTodo'
+      placeholder="What needs to be done?">
+
+  </header>
+  <section class="main">
+    <input class='toggle-all' id='toggle-all' type='checkbox' v-model='allDone'>
+    <label for="toggle-all">Mark all as complete</label>
+
+    <ul class="todo-list">
+      <li class="todo" v-for="todo in filterTodos"
+      :class= "{completed:todo.completed, editing:todo == editingTodo}">
+        <div class="view">
+          <input class="toggle" type="checkbox" v-model='todo.completed'>
+          <label @dblclick='editTodo(todo)'>{{ todo.title }}</label>
+          <button class="destroy"style="width:90px" @click='deleteTodo(todo)'></button>
+        </div>
+        <input class='edit' type='text' v-model='todo.title'
+        @keyup.enter ='doneEditing()'
+        @keyup.esc = 'cancelEditing()'>
+      </li>
+    </ul>
+  </section>
+
+  <footer class='footer'>
+    <span class='todo-count'>
+      <strong>{{ remainingTodos }}</strong> {{ remainingText }} left
+      </span>
+      <ul class='filters'>
+        <li><a href="#"  @click.prevent="Visibility='all'" :class="{selected:Visibility=='all'}">All</a><li>
+        <li><a href="#"  @click.prevent="Visibility='active'" :class="{selected:Visibility=='active'}">Active</a><li>
+        <li><a href="#"  @click.prevent="Visibility='Completed'" :class="{selected:Visibility=='completed'}">Completed</a><li>
+      </ul>
+      <<button class='clear-completed' @click='removeCompleted()'> Clear completed</button>
+      </footer>
+
+</section>
+
+<script>
+  var filters = {
+    'all': function(todos){
+      return todos;
+    },
+    'active': function(todos){
+      return todos.filter(function(todo){
+        return ! todo.completed
+      });
+    },
+    'Completed': function(todos){
+      return todos.filter(function(todo){
+        return todo.completed
+      });
+    },
+  }
+
+  var todos_storage = {
+    fetch: function(){
+      var todos = JSON.parse(localStorage.getItem('todos') || '[]')
+      return todos;
+    },
+    save: function(todos){
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+  }
+
+new Vue({
+  el:'.todoapp',
+  data: {
+    newtodo: '',
+    Visibility: 'all',
+    editingTodo: null,
+    oldEditingTodoTitle: null,
+    todos:todos_storage.fetch()
+  },
+
+  computed:{
+    filterTodos: function(){
+      return filters[ this.Visibility ](this.todos);
+    },
+    remainingTodos: function () {
+      return filters.active(this.todos).length;
+    },
+    remainingText: function() {
+      if ( filters.active(this.todos).length > 1)
+        return 'items';
+      return 'item';
+    },
+    allDone: {
+      get: function(){
+        return this.remainingTodos === 0;
+      },
+      set: function(value){
+        this.todos.forEach(function(todo){
+          todo.completed = value;
+        });
+      },
+    },
+    },
+methods:{
+    deleteTodo:function(todo){
+      this.todos.splice(this.todos.indexOf(todo), 1);
+    },
+
+    addTodo : function(){
+      if(this.newtodo == '')
+       return;
+
+      this.todos.push({
+        'title':this.newtodo,
+        'completed': false,
+      });
+      this.newtodo = '';
+    },
+    removeCompleted(){
+      this.todos = filters.active(this.todos);
+    },
+    editTodo(todo){
+      this.editingTodo = todo;
+      this.oldEditingTodoTitle = todo.title;
+    },
+    doneEditing(){
+      if(this.editingTodo.title == '')
+        this.deleteTodo(this.editingTodo);
+
+      this.editingTodo = null;
+    },
+    cancelEditing(){
+      this.editingTodo.title = this.oldEditingTodoTitle;
+      this.editingTodo = null;
+    }
+  },
+
+  watch:{
+    todos:{
+      handler:function(todos){
+        todos_storage.save(todos);
+      },
+      deep:true
+    }
+  }
+});
+</script>
